@@ -144,7 +144,7 @@ project/
 ### 1. Clone repository
 
 ```
-git clone https://github.com/your-username/votemate-ai
+git clone https://github.com/Raj-max-pixal/votemate-ai
 cd votemate-ai
 ```
 

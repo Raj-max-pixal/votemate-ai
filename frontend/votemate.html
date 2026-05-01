@@ -1,0 +1,1972 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoteMate – Election Learning Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* ── RESET & TOKENS ── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0a0c10;
+      --surface: #111318;
+      --card: #16191f;
+      --border: #252930;
+      --accent: #3b82f6;
+      --accent2: #8b5cf6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --text: #e8eaf0;
+      --muted: #7a8090;
+      --radius: 14px;
+      --glow: 0 0 30px rgba(59, 130, 246, .18);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      opacity: .4;
+    }
+
+    /* ── TOP NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 12, 16, .85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+    }
+
+    .nav-tab {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .82rem;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 8px;
+      transition: all .2s;
+    }
+
+    .nav-tab:hover,
+    .nav-tab.active {
+      background: var(--card);
+      color: var(--text);
+    }
+
+    .nav-tab.active {
+      color: var(--accent);
+    }
+
+    /* ── PAGES ── */
+    .page {
+      display: none;
+      padding: 28px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .page.active {
+      display: block;
+      animation: fadeUp .35s ease;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 60px 20px 40px;
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, .15), transparent);
+      border-radius: 20px;
+      margin-bottom: 36px;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: rgba(59, 130, 246, .12);
+      border: 1px solid rgba(59, 130, 246, .3);
+      color: var(--accent);
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+
+    /* ── GRID ── */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      cursor: pointer;
+      transition: all .25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--hover-grad, transparent);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: var(--glow);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+    }
+
+    .card-desc {
+      color: var(--muted);
+      font-size: .85rem;
+      line-height: 1.5;
+    }
+
+    .card-arrow {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 1.1rem;
+      transition: .2s;
+    }
+
+    .card:hover .card-arrow {
+      color: var(--accent);
+      transform: translateY(-50%) translateX(4px);
+    }
+
+    /* ── SECTION HEADER ── */
+    .sec-header {
+      margin-bottom: 24px;
+    }
+
+    .sec-header h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .sec-header p {
+      color: var(--muted);
+      font-size: .88rem;
+      margin-top: 4px;
+    }
+
+    /* ── TIMELINE ── */
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--accent), var(--accent2));
+      border-radius: 2px;
+    }
+
+    .tl-item {
+      position: relative;
+      margin-bottom: 28px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 18px 18px 20px;
+      transition: .25s;
+    }
+
+    .tl-item.active-stage {
+      border-color: var(--accent);
+      box-shadow: var(--glow);
+    }
+
+    .tl-dot {
+      position: absolute;
+      left: -25px;
+      top: 22px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 3px solid var(--border);
+      transition: .3s;
+    }
+
+    .tl-item.active-stage .tl-dot {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .tl-stage {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .tl-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .tl-desc {
+      color: var(--muted);
+      font-size: .83rem;
+    }
+
+    .tl-date {
+      font-size: .75rem;
+      color: var(--accent2);
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    /* ── PROGRESS BAR ── */
+    .prog-wrap {
+      background: var(--surface);
+      border-radius: 20px;
+      height: 8px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+
+    .prog-bar {
+      height: 100%;
+      border-radius: 20px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 1s ease;
+    }
+
+    /* ── CHAT ── */
+    .chat-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 520px;
+    }
+
+    .chat-header {
+      background: var(--surface);
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .chat-name {
+      font-weight: 700;
+      font-size: .95rem;
+    }
+
+    .chat-status {
+      font-size: .75rem;
+      color: var(--green);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .msg {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: .88rem;
+      line-height: 1.55;
+      animation: msgIn .2s ease;
+    }
+
+    @keyframes msgIn {
+      from {
+        opacity: 0;
+        transform: scale(.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .msg.bot {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px 14px 14px 2px;
+      align-self: flex-start;
+    }
+
+    .msg.user {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 14px 14px 2px 14px;
+      align-self: flex-end;
+    }
+
+    .msg-time {
+      font-size: .68rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .chat-input-row {
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .88rem;
+      padding: 10px 16px;
+      outline: none;
+      transition: .2s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--accent);
+    }
+
+    .chat-send {
+      background: var(--accent);
+      border: none;
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1rem;
+      transition: .2s;
+    }
+
+    .chat-send:hover {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
+
+    .quick-chips {
+      padding: 8px 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border);
+    }
+
+    .chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: .75rem;
+      cursor: pointer;
+      color: var(--text);
+      transition: .2s;
+      white-space: nowrap;
+    }
+
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── TYPING ── */
+    .typing {
+      display: flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .typing span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: blink 1.2s infinite;
+    }
+
+    .typing span:nth-child(2) {
+      animation-delay: .2s;
+    }
+
+    .typing span:nth-child(3) {
+      animation-delay: .4s;
+    }
+
+    @keyframes blink {
+
+      0%,
+      80%,
+      100% {
+        opacity: .3;
+      }
+
+      40% {
+        opacity: 1;
+      }
+    }
+
+    /* ── SIMULATION ── */
+    .sim-candidate {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .cand-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .cand-name {
+      font-weight: 700;
+      font-size: .95rem;
+    }
+
+    .cand-party {
+      font-size: .78rem;
+      color: var(--muted);
+    }
+
+    .vote-btn {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 7px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: .83rem;
+      transition: .2s;
+    }
+
+    .vote-btn:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .vote-btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .vote-btn.voted {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .result-bar-wrap {
+      background: var(--surface);
+      border-radius: 8px;
+      height: 10px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .result-bar {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 1.2s ease;
+    }
+
+    .vote-count {
+      font-size: .78rem;
+      font-weight: 700;
+      min-width: 30px;
+      text-align: right;
+    }
+
+    .cand-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .88rem;
+      padding: 10px 14px;
+      outline: none;
+      width: 100%;
+      margin-bottom: 8px;
+      transition: .2s;
+    }
+
+    .cand-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: .88rem;
+      cursor: pointer;
+      transition: .2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .btn-ghost:hover {
+      background: var(--card);
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-green {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .btn-green:hover {
+      background: #16a34a;
+    }
+
+    /* ── EXPLAIN CARDS ── */
+    .explain-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      margin-bottom: 14px;
+    }
+
+    .explain-card h3 {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .explain-card p {
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.6;
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .mode-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: .82rem;
+      transition: .2s;
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* ── FAKE NEWS ── */
+    .detector-area {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+
+    .detector-textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .88rem;
+      padding: 14px;
+      outline: none;
+      resize: vertical;
+      min-height: 100px;
+      transition: .2s;
+    }
+
+    .detector-textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .verdict {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid;
+      animation: fadeUp .3s ease;
+    }
+
+    .verdict.real {
+      background: rgba(34, 197, 94, .08);
+      border-color: rgba(34, 197, 94, .3);
+    }
+
+    .verdict.fake {
+      background: rgba(239, 68, 68, .08);
+      border-color: rgba(239, 68, 68, .3);
+    }
+
+    .verdict.mixed {
+      background: rgba(245, 158, 11, .08);
+      border-color: rgba(245, 158, 11, .3);
+    }
+
+    .verdict-label {
+      font-weight: 800;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .verdict.real .verdict-label {
+      color: var(--green);
+    }
+
+    .verdict.fake .verdict-label {
+      color: var(--red);
+    }
+
+    .verdict.mixed .verdict-label {
+      color: var(--amber);
+    }
+
+    .verdict p {
+      color: var(--muted);
+      font-size: .85rem;
+      line-height: 1.55;
+    }
+
+    /* ── TAGS ── */
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    .tag-blue {
+      background: rgba(59, 130, 246, .15);
+      color: var(--accent);
+    }
+
+    .tag-green {
+      background: rgba(34, 197, 94, .12);
+      color: var(--green);
+    }
+
+    .tag-red {
+      background: rgba(239, 68, 68, .12);
+      color: var(--red);
+    }
+
+    /* ── REGISTER STEPS ── */
+    .step-indicator {
+      display: flex;
+      gap: 0;
+      margin-bottom: 28px;
+    }
+
+    .step-dot {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      padding-bottom: 12px;
+    }
+
+    .step-dot::after {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      right: -50%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+
+    .step-dot:last-child::after {
+      display: none;
+    }
+
+    .step-dot.done::after {
+      background: var(--accent);
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .78rem;
+      font-weight: 700;
+      margin: 0 auto 6px;
+      background: var(--bg);
+      position: relative;
+      z-index: 1;
+      transition: .3s;
+    }
+
+    .step-dot.done .step-num {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .step-dot.active .step-num {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .step-label {
+      font-size: .72rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    /* ── REGISTER FORM ── */
+    .reg-form {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .form-input,
+    .form-select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .88rem;
+      padding: 11px 14px;
+      outline: none;
+      transition: .2s;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+      border-color: var(--accent);
+    }
+
+    .form-select option {
+      background: var(--surface);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* ── RESULTS ── */
+    .winner-banner {
+      background: linear-gradient(135deg, rgba(59, 130, 246, .12), rgba(139, 92, 246, .12));
+      border: 1px solid rgba(59, 130, 246, .3);
+      border-radius: var(--radius);
+      padding: 22px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .winner-banner .crown {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+    }
+
+    .winner-banner h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .winner-banner p {
+      color: var(--muted);
+      font-size: .88rem;
+      margin-top: 4px;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: .85rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all .3s ease;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* ── MOBILE ── */
+    @media(max-width:640px) {
+      nav {
+        padding: 12px 16px;
+      }
+
+      .nav-tab {
+        padding: 6px 10px;
+        font-size: .75rem;
+      }
+
+      .page {
+        padding: 16px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-wrap {
+        height: 420px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">Vote<span>Mate</span></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('home')"><i class="fas fa-home"></i> Home</button>
+      <button class="nav-tab" onclick="showPage('learn')"><i class="fas fa-book"></i> Learn</button>
+      <button class="nav-tab" onclick="showPage('chat')"><i class="fas fa-comments"></i> Chat</button>
+      <button class="nav-tab" onclick="showPage('simulate')"><i class="fas fa-poll"></i> Simulate</button>
+      <button class="nav-tab" onclick="showPage('news')"><i class="fas fa-search"></i> Fact Check</button>
+    </div>
+  </nav>
+
+  <!-- TOAST -->
+  <div id="toast"><i class="fas fa-check-circle"></i> Done!</div>
+
+  <!-- ═══════════ HOME PAGE ═══════════ -->
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <div class="hero-badge"><i class="fas fa-flag"></i> India Edition 2026</div>
+      <h1>Understand Elections,<br /><em>Like Never Before.</em></h1>
+      <p>Your smart assistant for everything elections — learn, simulate, verify, and vote with confidence.</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="showPage('learn')"><i class="fas fa-rocket"></i> Start Learning</button>
+        <button class="btn btn-outline" onclick="showPage('simulate')"><i class="fas fa-poll-h"></i> Try Simulation</button>
+      </div>
+    </div>
+
+    <div class="grid-4">
+      <div class="card" style="--hover-grad:linear-gradient(135deg,rgba(59,130,246,.06),transparent)"
+        onclick="showPage('learn')">
+        <div class="card-icon"><i class="fas fa-book"></i></div>
+        <div class="card-title">Learn Election Process</div>
+        <div class="card-desc">Step-by-step guide on how Indian elections work — from announcement to results.</div>
+        <div class="card-arrow">→</div>
+      </div>
+      <div class="card" style="--hover-grad:linear-gradient(135deg,rgba(34,197,94,.06),transparent)"
+        onclick="showPage('register')">
+        <div class="card-icon"><i class="fas fa-clipboard-list"></i></div>
+        <div class="card-title">Register to Vote</div>
+        <div class="card-desc">Check eligibility and learn how to register on the Voter ID portal.</div>
+        <div class="card-arrow">→</div>
+      </div>
+      <div class="card" style="--hover-grad:linear-gradient(135deg,rgba(139,92,246,.06),transparent)"
+        onclick="showPage('simulate')">
+        <div class="card-icon"><i class="fas fa-poll"></i></div>
+        <div class="card-title">Simulate an Election</div>
+        <div class="card-desc">Add candidates, cast votes, see live results with charts.</div>
+        <div class="card-arrow">→</div>
+      </div>
+      <div class="card" style="--hover-grad:linear-gradient(135deg,rgba(245,158,11,.06),transparent)"
+        onclick="showPage('news')">
+        <div class="card-icon"><i class="fas fa-search"></i></div>
+        <div class="card-title">Fake News Detector</div>
+        <div class="card-desc">Paste any election news — AI will tell you if it's real, fake, or misleading.</div>
+        <div class="card-arrow">→</div>
+      </div>
+    </div>
+
+    <div style="margin-top:28px;" class="grid-2">
+      <div class="card" onclick="showPage('chat')" style="cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div class="chat-avatar"><i class="fas fa-robot"></i></div>
+          <div>
+            <div style="font-weight:700;">VoteMate AI</div>
+            <div style="font-size:.75rem;color:var(--green);">● Online — Ask me anything</div>
+          </div>
+        </div>
+        <div style="color:var(--muted);font-size:.85rem;">Ask election questions in plain language. Get simple,
+          structured answers instantly.</div>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%;">Open Chat →</button>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px;"><i class="fas fa-chart-bar"></i> Election Snapshot — India 2024</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.85rem;color:var(--muted);">Total Eligible Voters</span>
+            <span style="font-weight:700;color:var(--accent);">96.8 Crore</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.85rem;color:var(--muted);">Voter Turnout</span>
+            <span style="font-weight:700;color:var(--green);">66.14%</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.85rem;color:var(--muted);">Constituencies</span>
+            <span style="font-weight:700;">543 Lok Sabha</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.85rem;color:var(--muted);">Phases</span>
+            <span style="font-weight:700;">7 Phases</span>
+          </div>
+          <div class="prog-wrap">
+            <div class="prog-bar" style="width:66%"></div>
+          </div>
+          <div style="font-size:.75rem;color:var(--muted);">66% voter turnout in 2024 General Election</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ LEARN PAGE ═══════════ -->
+  <div class="page" id="page-learn">
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-ghost" onclick="showPage('home')" style="padding:8px 12px;"><i class="fas fa-arrow-left"></i> Back</button>
+    </div>
+    <div class="sec-header">
+      <div class="hero-badge" style="margin-bottom:10px;"><i class="fas fa-book"></i> Election Process</div>
+      <h2>How Indian Elections Work</h2>
+      <p>From announcement to results — the complete journey explained.</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div
+      style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:.82rem;font-weight:600;color:var(--muted);">ELECTION PROGRESS</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--accent);" id="prog-label">Phase 3 of 7</span>
+      </div>
+      <div class="prog-wrap" style="height:12px;">
+        <div class="prog-bar" style="width:43%"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;">
+        <span style="font-size:.72rem;color:var(--muted);">Announcement</span>
+        <span style="font-size:.72rem;color:var(--muted);">Counting</span>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div class="tl-stage">Stage 1</div>
+          <span class="tag tag-green">Completed</span>
+        </div>
+        <div class="tl-title"><i class="fas fa-bullhorn"></i> Election Announcement</div>
+        <div class="tl-desc">Election Commission of India announces the election schedule. Model Code of Conduct (MCC)
+          comes into effect immediately.</div>
+        <div class="tl-date"><i class="fas fa-calendar"></i> March 2024</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div class="tl-stage">Stage 2</div>
+          <span class="tag tag-green">Completed</span>
+        </div>
+        <div class="tl-title"><i class="fas fa-file-alt"></i> Nomination Filing</div>
+        <div class="tl-desc">Candidates file nominations with Returning Officers. Nomination papers are scrutinized.
+          Candidates can withdraw within a set deadline.</div>
+        <div class="tl-date"><i class="fas fa-calendar"></i> March–April 2024</div>
+      </div>
+      <div class="tl-item active-stage">
+        <div class="tl-dot"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div class="tl-stage">Stage 3</div>
+          <span class="tag tag-blue">Active</span>
+        </div>
+        <div class="tl-title"><i class="fas fa-microphone"></i> Campaigning</div>
+        <div class="tl-desc">Parties and candidates campaign across constituencies. Rallies, door-to-door visits,
+          advertisements, debates. Ends 48 hours before voting (Silent Period).</div>
+        <div class="tl-date"><i class="fas fa-calendar"></i> April 2024 (Multi-Phase)</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-stage">Stage 4</div>
+        <div class="tl-title"><i class="fas fa-poll-h"></i> Voting Day</div>
+        <div class="tl-desc">Voters cast their vote using EVM (Electronic Voting Machine) at their assigned polling
+          booth. VVPAT is used to verify. Polling hours: 7 AM – 6 PM.</div>
+        <div class="tl-date"><i class="fas fa-calendar"></i> April–May 2024 (7 Phases)</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-stage">Stage 5</div>
+        <div class="tl-title"><i class="fas fa-lock"></i> Vote Counting</div>
+        <div class="tl-desc">All EVMs are securely stored and counted on a single counting day. Results are declared
+          constituency-wise.</div>
+        <div class="tl-date"><i class="fas fa-calendar"></i> June 4, 2024</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-stage">Stage 6</div>
+        <div class="tl-title"><i class="fas fa-crown"></i> Government Formation</div>
+        <div class="tl-desc">Winning party/alliance with majority (272+ seats) forms the government. Leader is sworn in
+          as Prime Minister.</div>
+        <div class="tl-date"><i class="fas fa-calendar"></i> June 2024</div>
+      </div>
+    </div>
+
+    <!-- EVM Explainer -->
+    <div style="margin-top:28px;" class="grid-2">
+      <div class="explain-card">
+        <h3><i class="fas fa-bolt"></i> What is EVM?</h3>
+        <p>Electronic Voting Machine — a tamper-proof device used to cast and record votes in India. It has two units:
+          the Control Unit (with polling officer) and Ballot Unit (with voter). Each EVM can store 64,000 votes and
+          works on batteries.</p>
+      </div>
+      <div class="explain-card">
+        <h3><i class="fas fa-receipt"></i> What is VVPAT?</h3>
+        <p>Voter Verifiable Paper Audit Trail — prints a slip showing your voted candidate symbol for 7 seconds. Ensures
+          transparency and allows you to verify your vote was recorded correctly before the slip drops into a sealed
+          box.</p>
+      </div>
+      <div class="explain-card">
+        <h3><i class="fas fa-lock"></i> What is MCC?</h3>
+        <p>Model Code of Conduct — a set of guidelines by ECI that parties and candidates must follow from election
+          announcement till results. Bans freebies, hate speech, misuse of government resources during election period.
+        </p>
+      </div>
+      <div class="explain-card">
+        <h3><i class="fas fa-building"></i> Who is ECI?</h3>
+        <p>Election Commission of India — the constitutional body responsible for administering all elections. Founded
+          in 1950, it is headed by the Chief Election Commissioner and ensures free and fair elections across the
+          country.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ REGISTER PAGE ═══════════ -->
+  <div class="page" id="page-register">
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-ghost" onclick="showPage('home')" style="padding:8px 12px;"><i class="fas fa-arrow-left"></i> Back</button>
+    </div>
+    <div class="sec-header">
+      <div class="hero-badge" style="margin-bottom:10px;"><i class="fas fa-list-check"></i> Voter Registration</div>
+      <h2>How to Register as a Voter</h2>
+      <p>Complete this in 4 steps — 100% online via Voter Helpline App.</p>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator" id="reg-steps">
+      <div class="step-dot active" id="step-1">
+        <div class="step-num">1</div>
+        <div class="step-label">Eligibility</div>
+      </div>
+      <div class="step-dot" id="step-2">
+        <div class="step-num">2</div>
+        <div class="step-label">Documents</div>
+      </div>
+      <div class="step-dot" id="step-3">
+        <div class="step-num">3</div>
+        <div class="step-label">Details</div>
+      </div>
+      <div class="step-dot" id="step-4">
+        <div class="step-num">4</div>
+        <div class="step-label">Submit</div>
+      </div>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="reg-form" id="reg-panel-1">
+      <h3 style="font-weight:700;margin-bottom:16px;"><i class="fas fa-check-circle"></i> Check Eligibility</h3>
+      <div class="grid-2" style="gap:12px;margin-bottom:20px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:6px;"><i class="fas fa-flag"></i> Indian Citizen</div>
+          <div style="font-size:.82rem;color:var(--muted);">Must be a citizen of India</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:6px;"><i class="fas fa-calendar"></i> Age 18+</div>
+          <div style="font-size:.82rem;color:var(--muted);">Must be 18 years or older by Jan 1 of the election year
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:6px;"><i class="fas fa-map-pin"></i> Resident</div>
+          <div style="font-size:.82rem;color:var(--muted);">Ordinary resident of the constituency</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:6px;"><i class="fas fa-brain"></i> Sound Mind</div>
+          <div style="font-size:.82rem;color:var(--muted);">Not disqualified under any law</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="regNext(1)">I'm Eligible — Continue →</button>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="reg-form" id="reg-panel-2" style="display:none;">
+      <h3 style="font-weight:700;margin-bottom:16px;"><i class="fas fa-file"></i> Required Documents</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <div
+          style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:12px;align-items:center;">
+          <span style="font-size:1.3rem;"><i class="fas fa-id-card"></i></span>
+          <div>
+            <div style="font-weight:700;font-size:.9rem;">Age Proof</div>
+            <div style="font-size:.78rem;color:var(--muted);">Birth Certificate / Class 10 Marksheet / Passport /
+              Aadhaar</div>
+          </div>
+        </div>
+        <div
+          style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:12px;align-items:center;">
+          <span style="font-size:1.3rem;"><i class="fas fa-map-marker-alt"></i></span>
+          <div>
+            <div style="font-weight:700;font-size:.9rem;">Address Proof</div>
+            <div style="font-size:.78rem;color:var(--muted);">Aadhaar Card / Electricity Bill / Bank Passbook / Rent
+              Agreement</div>
+          </div>
+        </div>
+        <div
+          style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:12px;align-items:center;">
+          <span style="font-size:1.3rem;"><i class="fas fa-camera"></i></span>
+          <div>
+            <div style="font-weight:700;font-size:.9rem;">Passport-size Photo</div>
+            <div style="font-size:.78rem;color:var(--muted);">Recent clear photo with white background</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="regPrev(2)">← Back</button>
+        <button class="btn btn-primary" onclick="regNext(2)">Documents Ready →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="reg-form" id="reg-panel-3" style="display:none;">
+      <h3 style="font-weight:700;margin-bottom:16px;"><i class="fas fa-pen"></i> Fill Your Details</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" placeholder="As per Aadhaar" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date of Birth</label>
+          <input class="form-input" type="date" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">State</label>
+        <select class="form-select">
+          <option>Tamil Nadu</option>
+          <option>Maharashtra</option>
+          <option>Karnataka</option>
+          <option>Kerala</option>
+          <option>Andhra Pradesh</option>
+          <option>Delhi</option>
+          <option>Uttar Pradesh</option>
+          <option>West Bengal</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Constituency</label>
+        <input class="form-input" placeholder="e.g. Chennai North" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Address</label>
+        <input class="form-input" placeholder="Full residential address" />
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="regPrev(3)">← Back</button>
+        <button class="btn btn-primary" onclick="regNext(3)">Review & Submit →</button>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="reg-form" id="reg-panel-4" style="display:none;text-align:center;">
+      <div style="font-size:3rem;margin-bottom:14px;"><i class="fas fa-party-horn" style="color:var(--green);"></i></div>
+      <h3 style="font-weight:800;font-size:1.2rem;margin-bottom:8px;">Registration Submitted!</h3>
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px;">Your Form 6 has been submitted. You'll receive
+        an SMS confirmation within 3–5 working days.</p>
+      <div
+        style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px;text-align:left;">
+        <div style="font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:8px;">WHAT HAPPENS NEXT?</div>
+        <div style="font-size:.83rem;line-height:1.8;color:var(--text);">
+          1. BLO verifies your address physically<br />
+          2. Your name is added to the Electoral Roll<br />
+          3. Voter ID card (EPIC) dispatched in 30 days<br />
+          4. Download e-EPIC instantly from voterportal.eci.gov.in
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="showPage('home')">Back to Home</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ CHAT PAGE ═══════════ -->
+  <div class="page" id="page-chat">
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-ghost" onclick="showPage('home')" style="padding:8px 12px;"><i class="fas fa-arrow-left"></i> Back</button>
+    </div>
+    <div class="sec-header">
+      <h2><i class="fas fa-comments"></i> VoteMate AI Chat</h2>
+      <p>Ask anything about elections — simple answers, instantly.</p>
+    </div>
+
+    <div class="chat-wrap">
+      <div class="chat-header">
+        <div class="chat-avatar"><i class="fas fa-robot"></i></div>
+        <div>
+          <div class="chat-name">VoteMate AI</div>
+          <div class="chat-status">● Online</div>
+        </div>
+        <div style="margin-left:auto;font-size:.75rem;color:var(--muted);">Powered by RAJ</div>
+      </div>
+
+      <div class="quick-chips">
+        <div class="chip" onclick="sendChip(this)">How to vote in India?</div>
+        <div class="chip" onclick="sendChip(this)">What is EVM?</div>
+        <div class="chip" onclick="sendChip(this)">Who can vote?</div>
+        <div class="chip" onclick="sendChip(this)">What is NOTA?</div>
+        <div class="chip" onclick="sendChip(this)">How many phases in 2024?</div>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="msg bot">
+          <i class="fas fa-hand-up"></i> Hi! I'm VoteMate AI. Ask me anything about Indian elections — from how EVMs work to how to register to
+          vote. I'll keep it simple! <i class="fas fa-poll-h"></i>
+          <div class="msg-time">Now</div>
+        </div>
+      </div>
+
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" placeholder="Ask about elections..."
+          onkeydown="if(event.key==='Enter')sendMessage()" />
+        <button class="chat-send" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+    <!-- Explain Mode -->
+    <div style="margin-top:24px;" class="sec-header">
+      <h2><i class="fas fa-lightbulb"></i> Smart Explain Mode</h2>
+      <p>Choose how you want explanations tailored for you.</p>
+    </div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" onclick="setMode('kid',this)"><i class="fas fa-user"></i> Like I'm 10</button>
+      <button class="mode-btn" onclick="setMode('firsttime',this)"><i class="fas fa-poll-h"></i> First-Time Voter</button>
+      <button class="mode-btn" onclick="setMode('expert',this)"><i class="fas fa-graduation-cap"></i> Detailed</button>
+    </div>
+    <div id="explain-content">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- ═══════════ SIMULATE PAGE ═══════════ -->
+  <div class="page" id="page-simulate">
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-ghost" onclick="showPage('home')" style="padding:8px 12px;"><i class="fas fa-arrow-left"></i> Back</button>
+    </div>
+    <div class="sec-header">
+      <h2><i class="fas fa-poll-h"></i> Election Simulator</h2>
+      <p>Create candidates, cast votes, see real-time results.</p>
+    </div>
+
+    <div class="grid-2">
+      <!-- Left: Add Candidates -->
+      <div>
+        <div
+          style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
+          <div style="font-weight:700;margin-bottom:14px;"><i class="fas fa-plus-circle"></i> Add Candidate</div>
+          <input class="cand-input" id="cand-name" placeholder="Candidate Name" />
+          <input class="cand-input" id="cand-party" placeholder="Party Name" />
+          <select class="cand-input" id="cand-color" style="background:var(--surface);">
+            <option value="#3b82f6">● Blue</option>
+            <option value="#22c55e">● Green</option>
+            <option value="#ef4444">● Red</option>
+            <option value="#f59e0b">● Yellow</option>
+            <option value="#8b5cf6">● Purple</option>
+            <option value="#ec4899">● Pink</option>
+          </select>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn btn-primary" onclick="addCandidate()" style="flex:1;">Add Candidate</button>
+            <button class="btn btn-outline" onclick="addDefaultCandidates()">Load Demo</button>
+          </div>
+        </div>
+
+        <div id="candidates-list">
+          <div style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px;">
+            No candidates yet. Add some above or click "Load Demo".
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Results -->
+      <div>
+        <div
+          style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-weight:700;"><i class="fas fa-chart-bar"></i> Live Results</div>
+            <div style="font-size:.78rem;color:var(--muted);" id="vote-total">0 votes cast</div>
+          </div>
+          <div id="results-list">
+            <div style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px;">
+              Add candidates and start voting to see results.
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" onclick="resetSim()" style="flex:1;"><i class="fas fa-redo"></i> Reset</button>
+          <button class="btn btn-green" onclick="declareWinner()" style="flex:1;"><i class="fas fa-crown"></i> Declare Winner</button>
+        </div>
+        <div id="winner-zone" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ FAKE NEWS PAGE ═══════════ -->
+  <div class="page" id="page-news">
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-ghost" onclick="showPage('home')" style="padding:8px 12px;"><i class="fas fa-arrow-left"></i> Back</button>
+    </div>
+    <div class="sec-header">
+      <h2><i class="fas fa-search"></i> Election Fact Checker</h2>
+      <p>Paste any election-related headline or news. AI will analyze it instantly.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="detector-area">
+        <div style="font-weight:700;margin-bottom:12px;"><i class="fas fa-newspaper"></i> Paste News / Headline</div>
+        <textarea class="detector-textarea" id="news-input"
+          placeholder="e.g. 'EVMs were hacked in 2024 elections to manipulate results...'"></textarea>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="checkNews()" style="flex:1;"><i class="fas fa-search"></i> Analyze News</button>
+          <button class="btn btn-ghost" onclick="clearNews()">Clear</button>
+        </div>
+        <div id="verdict-box"></div>
+      </div>
+
+      <div>
+        <div
+          style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;">
+          <div style="font-weight:700;margin-bottom:12px;"><i class="fas fa-bolt"></i> Try Sample Claims</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-ghost" style="text-align:left;font-size:.82rem;" onclick="loadSample(0)">
+              <i class="fas fa-thumbtack"></i> "EVMs can be hacked remotely using Bluetooth"
+            </button>
+            <button class="btn btn-ghost" style="text-align:left;font-size:.82rem;" onclick="loadSample(1)">
+              <i class="fas fa-thumbtack"></i> "Voting in India happens using paper ballots"
+            </button>
+            <button class="btn btn-ghost" style="text-align:left;font-size:.82rem;" onclick="loadSample(2)">
+              <i class="fas fa-thumbtack"></i> "India had 543 Lok Sabha seats in 2024 elections"
+            </button>
+            <button class="btn btn-ghost" style="text-align:left;font-size:.82rem;" onclick="loadSample(3)">
+              <i class="fas fa-thumbtack"></i> "The 2024 election saw a 95% voter turnout — highest ever"
+            </button>
+          </div>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;">
+          <div style="font-weight:700;margin-bottom:10px;"><i class="fas fa-lightbulb"></i> How to Spot Fake News</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:.82rem;color:var(--muted);"><i class="fas fa-check-circle"></i> Check official ECI website: eci.gov.in</div>
+            <div style="font-size:.82rem;color:var(--muted);"><i class="fas fa-check-circle"></i> Look for primary source links in articles</div>
+            <div style="font-size:.82rem;color:var(--muted);"><i class="fas fa-check-circle"></i> Verify with multiple reputed news sources</div>
+            <div style="font-size:.82rem;color:var(--muted);"><i class="fas fa-check-circle"></i> Watch out for emotional/extreme language</div>
+            <div style="font-size:.82rem;color:var(--muted);"><i class="fas fa-check-circle"></i> Check the publication date & author</div>
+            <div style="font-size:.82rem;color:var(--muted);"><i class="fas fa-check-circle"></i> Use FactCheck India / Alt News for verification</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ═══════════ NAV ═══════════ */
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+      const mapping = { home: 0, learn: 1, chat: 2, simulate: 3, news: 4, register: 5 };
+      document.getElementById('page-' + id)?.classList.add('active');
+      document.querySelectorAll('.nav-tab')[mapping[id] ?? 0]?.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (id === 'chat') renderExplain();
+    }
+
+    /* ═══════════ TOAST ═══════════ */
+    function toast(msg, icon = '<i class="fas fa-check-circle"></i>') {
+      const el = document.getElementById('toast');
+      el.textContent = icon + ' ' + msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    /* ═══════════ REGISTRATION ═══════════ */
+    let regStep = 1;
+    function regNext(step) {
+      document.getElementById('reg-panel-' + step).style.display = 'none';
+      document.getElementById('reg-panel-' + (step + 1)).style.display = 'block';
+      document.getElementById('step-' + step).classList.remove('active');
+      document.getElementById('step-' + step).classList.add('done');
+      document.getElementById('step-' + (step + 1))?.classList.add('active');
+    }
+    function regPrev(step) {
+      document.getElementById('reg-panel-' + step).style.display = 'none';
+      document.getElementById('reg-panel-' + (step - 1)).style.display = 'block';
+      document.getElementById('step-' + step).classList.remove('active');
+      document.getElementById('step-' + (step - 1)).classList.remove('done');
+      document.getElementById('step-' + (step - 1)).classList.add('active');
+    }
+
+    /* ═══════════ AI CHAT ═══════════ */
+    const KB = {
+      "evm": { title: "What is EVM?", answer: "<i class='fas fa-desktop'></i> <b>EVM = Electronic Voting Machine</b><br/><br/>It has two parts:<br/>• <b>Control Unit</b> — with the polling officer<br/>• <b>Ballot Unit</b> — where you press your vote<br/><br/><i class='fas fa-check'></i> Tamper-proof, battery-powered<br/><i class='fas fa-check'></i> Stores up to 64,000 votes<br/><i class='fas fa-check'></i> Verified by VVPAT paper slip" },
+      "how to vote": { title: "How to Vote in India", answer: "<i class='fas fa-poll-h'></i> <b>Steps to Vote:</b><br/><br/>1. Carry your Voter ID / Aadhaar<br/>2. Go to your assigned polling booth<br/>3. Officer verifies your name on the roll<br/>4. Ink mark on finger<br/>5. Press the button next to your candidate<br/>6. Verify via VVPAT slip (7 seconds)" },
+      "who can vote": { title: "Voter Eligibility", answer: "<i class='fas fa-check'></i> <b>You can vote if:</b><br/><br/>• Indian citizen<br/>• Age 18 or above<br/>• Name in Electoral Roll<br/>• Not disqualified by law<br/><br/><i class='fas fa-times'></i> <b>Cannot vote if:</b><br/>• Non-citizen<br/>• Under 18<br/>• Declared unsound mind by court<br/>• Serving criminal sentence" },
+      "nota": { title: "What is NOTA?", answer: "<i class='fas fa-ban'></i> <b>NOTA = None Of The Above</b><br/><br/>Introduced in India in 2013 after a Supreme Court order.<br/><br/>• Allows voters to reject all candidates<br/>• NOTA votes are counted but don't transfer to any candidate<br/>• Candidate with most votes still wins<br/>• Gives voters a way to protest all candidates" },
+      "phases": { title: "2024 Election Phases", answer: "<i class='fas fa-calendar'></i> <b>2024 Lok Sabha Election — 7 Phases:</b><br/><br/>• Phase 1: April 19<br/>• Phase 2: April 26<br/>• Phase 3: May 7<br/>• Phase 4: May 13<br/>• Phase 5: May 20<br/>• Phase 6: May 25<br/>• Phase 7: June 1<br/>• Counting: <b>June 4, 2024</b>" },
+      "voter id": { title: "Voter ID (EPIC)", answer: "<i class='fas fa-id-card'></i> <b>EPIC = Electoral Photo Identity Card</b><br/><br/>• Issued by ECI<br/>• 10-digit alphanumeric code<br/>• Required at polling booth<br/>• Apply at voterportal.eci.gov.in<br/>• Download e-EPIC instantly online<br/>• Can also use Aadhaar, Passport as alternate ID at booth" },
+      "model code": { title: "Model Code of Conduct", answer: "<i class='fas fa-list-check'></i> <b>MCC = Model Code of Conduct</b><br/><br/>Active from election announcement to results.<br/><br/>It bans:<br/>• Freebies/gifts to voters<br/>• Hate speech by candidates<br/>• Misuse of government resources<br/>• New policy announcements by ruling party<br/><br/>Enforced by <b>Election Commission of India</b>" },
+      "lok sabha": { title: "What is Lok Sabha?", answer: "<i class='fas fa-building'></i> <b>Lok Sabha = House of the People</b><br/><br/>• Lower house of Indian Parliament<br/>• 543 elected seats (+ 2 nominated)<br/>• Members called MPs (Members of Parliament)<br/>• Term: 5 years<br/>• Simple majority (272+) to form government<br/>• Members elected directly by voters" },
+    };
+async function getBotReply(input) {
+  try {
+    const res = await fetch("http://localhost:3000/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message: input })
+    });
+
+    const data = await res.json();
+    return data.reply || "No response";
+
+  } catch (err) {
+    return "⚠️ AI not connected. Run backend.";
+  }
+}
+
+    function addMsg(text, type) {
+      const box = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'msg ' + type;
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      div.innerHTML = text + `<div class="msg-time">${now}</div>`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      return div;
+    }
+
+    function showTyping() {
+      const box = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'msg bot'; div.id = 'typing-indicator';
+      div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+      box.appendChild(div); box.scrollTop = box.scrollHeight;
+    }
+
+  async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if (!q) return;
+
+  addMsg(q, 'user');
+  input.value = '';
+
+  showTyping();
+
+  try {
+    const reply = await getBotReply(q);
+
+    const t = document.getElementById('typing-indicator');
+    if (t) t.remove();
+
+    addMsg(reply || "⚠️ No response from AI", 'bot');
+
+  } catch (err) {
+    const t = document.getElementById('typing-indicator');
+    if (t) t.remove();
+
+    addMsg("⚠️ Server error", 'bot');
+  }
+}
+    function sendChip(el) {
+      document.getElementById('chat-input').value = el.textContent;
+      sendMessage();
+    }
+
+    /* ═══════════ EXPLAIN MODE ═══════════ */
+    let currentMode = 'kid';
+    const explains = {
+      kid: [
+        { icon: '<i class=\"fas fa-poll-h\"></i>', title: 'Voting', text: 'Voting is like choosing your favorite color in class — except here, you choose the leader of your city, state, or country. Everyone gets one vote, and whoever gets the most wins!' },
+        { icon: '<i class=\"fas fa-tv\"></i>', title: 'Campaign', text: 'Campaign is when leaders try to convince you to vote for them — like ads on TV or someone visiting your house. It\'s like a popularity contest at school!' },
+        { icon: '<i class=\"fas fa-robot\"></i>', title: 'EVM', text: 'EVM is a special machine at the voting booth. You press a button next to the name you like, and it secretly saves your choice. Nobody can peek at your answer!' },
+      ],
+      firsttime: [
+        { icon: '<i class=\"fas fa-list-check\"></i>', title: 'Step 1 — Register', text: 'Go to voterportal.eci.gov.in and fill Form 6. Upload Aadhaar + photo. Your name will be added to the voter list within 30 days.' },
+        { icon: '<i class=\"fas fa-map-pin\"></i>', title: 'Step 2 — Find Your Booth', text: 'Check your polling booth on the ECI website or Voter Helpline App using your Voter ID number. Note the booth number and address.' },
+        { icon: '<i class=\"fas fa-poll-h\"></i>', title: 'Step 3 — Vote', text: 'On election day, carry your Voter ID. An officer applies ink on your finger, you go to the EVM, press the button for your candidate. Done in 2 minutes!' },
+      ],
+      expert: [
+        { icon: '<i class=\"fas fa-building\"></i>', title: 'Electoral System', text: 'India follows the First-Past-The-Post (FPTP) system. The candidate with plurality (most votes) in a constituency wins the seat — no runoffs. 543 Lok Sabha constituencies mapped via delimitation.' },
+        { icon: '<i class=\"fas fa-bolt\"></i>', title: 'EVM Architecture', text: 'EVMs consist of Control Unit + Ballot Unit linked by 5m cable. M3 variant used since 2013 with one-time programmable chips — no external communication ports, no OS, completely air-gapped.' },
+        { icon: '<i class=\"fas fa-chart-bar\"></i>', title: 'Result Mechanism', text: 'Counting happens simultaneously across counting centers on a single day. Postal ballots (including armed forces) counted first. Results declared via ECI\'s Voter Turnout App and Results Portal in real-time.' },
+      ]
+    };
+
+    function setMode(mode, btn) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderExplain();
+    }
+
+    function renderExplain() {
+      const c = document.getElementById('explain-content');
+      if (!c) return;
+      c.innerHTML = explains[currentMode].map(e =>
+        `<div class="explain-card">
+      <h3>${e.icon} ${e.title}</h3>
+      <p>${e.text}</p>
+    </div>`
+      ).join('');
+    }
+
+    /* ═══════════ SIMULATION ═══════════ */
+    let candidates = [];
+    let votedFor = null;
+
+    function addDefaultCandidates() {
+      candidates = [
+        { name: 'Arjun Kumar', party: 'National Alliance', color: '#3b82f6', votes: 0 },
+        { name: 'Priya Sharma', party: 'People\'s Front', color: '#22c55e', votes: 0 },
+        { name: 'Rajan Pillai', party: 'United Progressive', color: '#f59e0b', votes: 0 },
+        { name: 'Meera Singh', party: 'Citizens Party', color: '#8b5cf6', votes: 0 },
+      ];
+      votedFor = null;
+      renderSim();
+      toast('Demo candidates loaded!');
+    }
+
+    function addCandidate() {
+      const name = document.getElementById('cand-name').value.trim();
+      const party = document.getElementById('cand-party').value.trim();
+      const color = document.getElementById('cand-color').value;
+      if (!name || !party) { toast('Fill name and party!', '<i class="fas fa-exclamation-triangle"></i>'); return; }
+      candidates.push({ name, party, color, votes: 0 });
+      document.getElementById('cand-name').value = '';
+      document.getElementById('cand-party').value = '';
+      renderSim();
+      toast(`${name} added!`, '<i class="fas fa-check-circle"></i>');
+    }
+
+    function castVote(idx) {
+      if (votedFor !== null) { toast('You already voted!', '<i class="fas fa-exclamation-triangle"></i>'); return; }
+      candidates[idx].votes++;
+      votedFor = idx;
+      renderSim();
+      toast(`Vote cast for ${candidates[idx].name}!`, '🗳️');
+    }
+
+    function renderSim() {
+      const total = candidates.reduce((s, c) => s + c.votes, 0);
+      document.getElementById('vote-total').textContent = total + ' vote' + (total !== 1 ? 's' : '') + ' cast';
+
+      // Candidate cards
+      const cl = document.getElementById('candidates-list');
+      if (candidates.length === 0) {
+        cl.innerHTML = '<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px;">No candidates yet.</div>';
+      } else {
+        cl.innerHTML = candidates.map((c, i) => `
+      <div class="sim-candidate">
+        <div class="cand-avatar" style="background:${c.color}">${c.name[0]}</div>
+        <div>
+          <div class="cand-name">${c.name}</div>
+          <div class="cand-party">${c.party}</div>
+        </div>
+        <button class="vote-btn ${votedFor === i ? 'voted' : ''}" onclick="castVote(${i})" ${votedFor !== null ? 'disabled' : ''}>
+          ${votedFor === i ? '<i class="fas fa-check"></i> Voted' : 'Vote'}
+        </button>
+      </div>
+    `).join('');
+      }
+
+      // Results
+      const rl = document.getElementById('results-list');
+      if (candidates.length === 0 || total === 0) {
+        rl.innerHTML = '<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px;">No votes yet.</div>';
+      } else {
+        const sorted = [...candidates].sort((a, b) => b.votes - a.votes);
+        rl.innerHTML = sorted.map(c => {
+          const pct = total ? Math.round((c.votes / total) * 100) : 0;
+          return `
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+            <span style="font-weight:600;font-size:.85rem;">${c.name} <span style="color:var(--muted);font-weight:400;">(${c.party})</span></span>
+            <span style="font-weight:700;font-size:.85rem;">${pct}%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="result-bar-wrap">
+              <div class="result-bar" style="width:${pct}%;background:${c.color}"></div>
+            </div>
+            <span class="vote-count">${c.votes}</span>
+          </div>
+        </div>
+      `;
+        }).join('');
+      }
+    }
+
+    function resetSim() {
+      candidates.forEach(c => c.votes = 0);
+      votedFor = null;
+      document.getElementById('winner-zone').innerHTML = '';
+      renderSim();
+      toast('Election reset!', '<i class="fas fa-redo"></i>');
+    }
+
+    function declareWinner() {
+      const total = candidates.reduce((s, c) => s + c.votes, 0);
+      if (total === 0) { toast('No votes yet!', '<i class="fas fa-exclamation-triangle"></i>'); return; }
+      const winner = [...candidates].sort((a, b) => b.votes - a.votes)[0];
+      const pct = Math.round((winner.votes / total) * 100);
+      document.getElementById('winner-zone').innerHTML = `
+    <div class="winner-banner">
+      <div class="crown"><i class="fas fa-crown"></i></div>
+      <h2>${winner.name} Wins!</h2>
+      <p>${winner.party} · ${winner.votes} votes · ${pct}% share</p>
+    </div>
+  `;
+    }
+
+    /* ═══════════ FAKE NEWS DETECTOR ═══════════ */
+    const samples = [
+      "EVMs can be hacked remotely using Bluetooth",
+      "Voting in India happens using paper ballots in 2024",
+      "India had 543 Lok Sabha seats in 2024 elections",
+      "The 2024 election saw a 95% voter turnout — highest ever",
+    ];
+
+    const verdicts = [
+      { type: 'fake', icon: '<i class="fas fa-exclamation-circle"></i>', label: 'FAKE / MISLEADING', text: 'This is a common misinformation claim. India\'s EVMs (M3 and above) have no Bluetooth, Wi-Fi, or any wireless capability. They are standalone, air-gapped machines. The Supreme Court and multiple technical committees have confirmed EVMs cannot be hacked remotely.' },
+      { type: 'fake', icon: '<i class="fas fa-times-circle"></i>', label: 'INCORRECT', text: 'India moved from paper ballots to Electronic Voting Machines (EVMs) in 1999 (full switch by 2004). In 2024, EVMs were used across all 543 constituencies. VVPAT (paper audit trail) is present but it is not a ballot — it\'s a verification slip.' },
+      { type: 'real', icon: '<i class="fas fa-check-circle"></i>', label: 'VERIFIED TRUE', text: 'India has exactly 543 elected Lok Sabha constituencies. The 2024 General Election (18th Lok Sabha) was indeed conducted across all 543 seats, with results declared on June 4, 2024. BJP-led NDA won a majority.' },
+      { type: 'fake', icon: '<i class="fas fa-times-circle"></i>', label: 'MISLEADING / FALSE', text: 'The 2024 Lok Sabha election recorded approximately 66.14% voter turnout — not 95%. While it was a significant election, 95% would be historically unprecedented for any large democracy. The claim uses inflated numbers to mislead.' },
+    ];
+
+    function loadSample(i) {
+      document.getElementById('news-input').value = samples[i];
+      checkNews(i);
+    }
+
+    function checkNews(forceIdx) {
+      const input = document.getElementById('news-input').value.trim();
+      if (!input) { toast('Paste some news first!', '<i class="fas fa-exclamation-triangle"></i>'); return; }
+
+      const box = document.getElementById('verdict-box');
+      box.innerHTML = '<div style="color:var(--muted);font-size:.85rem;margin-top:14px;display:flex;align-items:center;gap:8px;"><div class="typing"><span></span><span></span><span></span></div> Analyzing...</div>';
+
+      setTimeout(() => {
+        let idx = typeof forceIdx === 'number' ? forceIdx : null;
+        if (idx === null) {
+          const lower = input.toLowerCase();
+          if (lower.includes('bluetooth') || lower.includes('hack')) idx = 0;
+          else if (lower.includes('paper ballot')) idx = 1;
+          else if (lower.includes('543')) idx = 2;
+          else if (lower.includes('95%')) idx = 3;
+          else {
+            // Generic
+            box.innerHTML = `<div class="verdict mixed">
+          <div class="verdict-label"><i class="fas fa-exclamation-triangle"></i> NEEDS VERIFICATION</div>
+          <p>This claim needs verification from official sources. We recommend checking:<br/>• ECI official website: eci.gov.in<br/>• Reputed fact-check platforms: AltNews, FactCheck India<br/>• PIB Fact Check: pib.gov.in/factcheck</p>
+        </div>`;
+            return;
+          }
+        }
+        const v = verdicts[idx];
+        box.innerHTML = `<div class="verdict ${v.type}">
+      <div class="verdict-label">${v.icon} ${v.label}</div>
+      <p>${v.text}</p>
+    </div>`;
+      }, 1200);
+    }
+
+    function clearNews() {
+      document.getElementById('news-input').value = '';
+      document.getElementById('verdict-box').innerHTML = '';
+    }
+
+    /* ═══════════ INIT ═══════════ */
+    renderExplain();
+    renderSim();
+  </script>
+</body>
+
+</html>
