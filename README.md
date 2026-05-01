@@ -15,7 +15,7 @@ It combines **education + simulation + AI assistance** into one platform to make
 
 ## 📦 GitHub Repository
 
-👉 https://github.com/your-username/votemate-ai
+👉 https://github.com/Raj-max-pixal/votemate-ai
 
 ---
 
